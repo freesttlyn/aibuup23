@@ -1,3 +1,4 @@
+
 -- 1. 회원 프로필 테이블 생성
 CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
@@ -30,7 +31,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. 트리거 설정
+-- 3. 트리거 설정 (기존 트리거 삭제 후 재생성)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -85,7 +86,7 @@ CREATE TABLE IF NOT EXISTS public.contacts (
     message text NOT NULL
 );
 
--- 8. 인덱스 설정 (검색 및 정렬 성능 최적화)
+-- 8. 인덱스 설정
 CREATE INDEX IF NOT EXISTS idx_posts_category ON public.posts(category);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_created_at ON public.news(created_at DESC);
@@ -98,28 +99,42 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
 
--- 10. 정책 설정
--- 프로필: 누구나 조회 가능, 본인만 수정
+-- 10. 정책 재설정 (기존 정책 삭제 후 생성)
+
+-- Profiles
+DROP POLICY IF EXISTS "Public profiles viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles viewable by everyone" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- 게시글/댓글: 누구나 조회 가능, 인증된 사용자만 작성, 본인만 수정/삭제
+-- Posts
+DROP POLICY IF EXISTS "Posts viewable by everyone" ON public.posts;
 CREATE POLICY "Posts viewable by everyone" ON public.posts FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated users insert posts" ON public.posts;
 CREATE POLICY "Authenticated users insert posts" ON public.posts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Users modify own posts" ON public.posts;
 CREATE POLICY "Users modify own posts" ON public.posts FOR ALL USING (auth.uid() = user_id);
 
+-- Comments
+DROP POLICY IF EXISTS "Comments viewable by everyone" ON public.comments;
 CREATE POLICY "Comments viewable by everyone" ON public.comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated users insert comments" ON public.comments;
 CREATE POLICY "Authenticated users insert comments" ON public.comments FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Users modify own comments" ON public.comments;
 CREATE POLICY "Users modify own comments" ON public.comments FOR ALL USING (auth.uid() = user_id);
 
--- 뉴스: 누구나 조회 가능, 관리자만 관리
+-- News
+DROP POLICY IF EXISTS "News viewable by everyone" ON public.news;
 CREATE POLICY "News viewable by everyone" ON public.news FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admins manage news" ON public.news;
 CREATE POLICY "Admins manage news" ON public.news FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'ADMIN')
 );
 
--- 연락처: 작성은 누구나, 조회는 관리자만
+-- Contacts
+DROP POLICY IF EXISTS "Anyone can insert contacts" ON public.contacts;
 CREATE POLICY "Anyone can insert contacts" ON public.contacts FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Admins can view contacts" ON public.contacts;
 CREATE POLICY "Admins can view contacts" ON public.contacts FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'ADMIN')
 );
