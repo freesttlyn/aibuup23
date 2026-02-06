@@ -1,5 +1,4 @@
 
-// Add React import to fix namespace error
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { VIP_CATEGORIES, BOARD_CATEGORIES } from '../constants';
@@ -49,10 +48,9 @@ const CommunityWrite: React.FC = () => {
       return;
     }
 
-    // Always use process.env.API_KEY directly for GoogleGenAI initialization
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 키가 설정되지 않았습니다. 관리자에게 문의하세요." }]);
+    // Use process.env.API_KEY exclusively as per guidelines and to fix import.meta error
+    if (!process.env.API_KEY) {
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 키가 설정되지 않았습니다. Cloudflare 설정에서 API_KEY를 확인하세요." }]);
       return;
     }
 
@@ -61,7 +59,7 @@ const CommunityWrite: React.FC = () => {
     setIsBotTyping(true);
 
     try {
-      // Initialize GoogleGenAI with named parameter apiKey from process.env.API_KEY
+      // Initialize with process.env.API_KEY directly as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
@@ -90,7 +88,7 @@ const CommunityWrite: React.FC = () => {
       ]);
     } catch (err) {
       console.error("AI Init Error:", err);
-      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 모듈을 초기화할 수 없습니다. 배포 환경 설정을 확인하거나 잠시 후 다시 시도해 주세요." }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 모듈 초기화 실패. API 키 권한이나 할당량을 확인하세요." }]);
       setStep('SELECT');
     } finally {
       setIsBotTyping(false);
@@ -127,8 +125,8 @@ const CommunityWrite: React.FC = () => {
     setIsBotTyping(true);
 
     try {
-      // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Initialize with process.env.API_KEY directly as per guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const history = messages.map(m => `${m.sender === 'bot' ? '에이전트' : '사용자'}: ${m.text}`).join('\n');
       
       const prompt = `

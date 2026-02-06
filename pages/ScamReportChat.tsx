@@ -1,5 +1,4 @@
 
-// Add React import to fix namespace error
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase, isConfigured } from '../lib/supabase';
@@ -105,8 +104,8 @@ const ScamReportChat: React.FC = () => {
     }]);
 
     try {
-      // Create a new GoogleGenAI instance right before making an API call and use process.env.API_KEY directly
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Initialize with process.env.API_KEY directly as per guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const qaPairs = QUESTIONS.map((q, i) => `질문: ${q}\n답변: ${finalAnswers[i]}`).join('\n\n');
       
       const prompt = `
