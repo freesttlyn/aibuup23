@@ -1,4 +1,5 @@
 
+// Add React import to fix namespace error
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { VIP_CATEGORIES, BOARD_CATEGORIES } from '../constants';
@@ -48,11 +49,19 @@ const CommunityWrite: React.FC = () => {
       return;
     }
 
+    // Always use process.env.API_KEY directly for GoogleGenAI initialization
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 키가 설정되지 않았습니다. 관리자에게 문의하세요." }]);
+      return;
+    }
+
     setSelectedCat(name);
     setStep('CHATTING');
     setIsBotTyping(true);
 
     try {
+      // Initialize GoogleGenAI with named parameter apiKey from process.env.API_KEY
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
@@ -118,12 +127,16 @@ const CommunityWrite: React.FC = () => {
     setIsBotTyping(true);
 
     try {
+      // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const history = messages.map(m => `${m.sender === 'bot' ? '에이전트' : '사용자'}: ${m.text}`).join('\n');
       
       const prompt = `
         다음 대화 데이터를 바탕으로 '${selectedCat}' 카테고리에 등록될 최종 '인텔리전스 리포트'를 마크다운으로 작성하세요.
         최상단에 "TITLE: [제목]" 형식으로 제목을 포함할 것.
+
+        대화 내용:
+        ${history}
       `;
 
       const response = await ai.models.generateContent({

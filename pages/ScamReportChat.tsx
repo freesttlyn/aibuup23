@@ -1,7 +1,7 @@
 
+// Add React import to fix namespace error
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Fix: Use isConfigured instead of non-existent isDemoMode
 import { supabase, isConfigured } from '../lib/supabase';
 import { UserContext } from '../App';
 import { GoogleGenAI } from "@google/genai";
@@ -105,7 +105,7 @@ const ScamReportChat: React.FC = () => {
     }]);
 
     try {
-      // Use process.env.API_KEY directly as required for GoogleGenAI initialization.
+      // Create a new GoogleGenAI instance right before making an API call and use process.env.API_KEY directly
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const qaPairs = QUESTIONS.map((q, i) => `질문: ${q}\n답변: ${finalAnswers[i]}`).join('\n\n');
       
@@ -129,7 +129,6 @@ const ScamReportChat: React.FC = () => {
         contents: prompt,
       });
 
-      // Fix: Access .text property instead of method.
       const aiText = response.text || "";
       const titleMatch = aiText.match(/TITLE:\s*(.*)/i);
       const generatedTitle = titleMatch ? titleMatch[1].trim() : `[피해사례] ${finalAnswers[0]} 관련 제보`;
@@ -147,15 +146,10 @@ const ScamReportChat: React.FC = () => {
         likes: 0
       };
 
-      // Fix: Use isConfigured to check if Supabase is available.
       if (isConfigured && user) {
         const { error } = await supabase.from('posts').insert([newPost]);
         if (error) throw error;
         refreshProfile();
-      } else {
-        const demoPost = { ...newPost, id: `post-${Date.now()}` };
-        const existing = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-        localStorage.setItem('demo_posts', JSON.stringify([demoPost, ...existing]));
       }
 
       setIsBotTyping(false);
@@ -190,13 +184,8 @@ const ScamReportChat: React.FC = () => {
         created_at: new Date().toISOString()
       };
 
-      // Fix: Use isConfigured to check if Supabase is available in fallback.
       if (isConfigured && user) {
         await supabase.from('posts').insert([fallbackPost]);
-      } else {
-        const demoFallback = { ...fallbackPost, id: `post-${Date.now()}` };
-        const existing = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-        localStorage.setItem('demo_posts', JSON.stringify([demoFallback, ...existing]));
       }
       navigate('/community?cat=강팔이피해사례');
     }
@@ -307,20 +296,8 @@ const ScamReportChat: React.FC = () => {
               </svg>
             </button>
           </div>
-          {isSubmitting && (
-            <p className="text-[10px] text-center text-emerald-500 font-black animate-pulse uppercase tracking-[0.2em]">
-              AI가 심층 데이터를 생성하고 있습니다...
-            </p>
-          )}
         </div>
       </div>
-      
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };
