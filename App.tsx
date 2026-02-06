@@ -34,12 +34,8 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      if (isConfigured) {
-        await supabase.auth.signOut();
-      } else {
-        localStorage.removeItem('demo_user');
-        window.location.reload();
-      }
+      await supabase.auth.signOut();
+      window.location.href = '/';
     } catch (e) {
       console.error("Logout error", e);
     }
@@ -96,19 +92,6 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
 
   const fetchProfile = async (userId: string) => {
-    if (!isConfigured) {
-      const demoUser = localStorage.getItem('demo_user');
-      if (demoUser) {
-        const parsed = JSON.parse(demoUser);
-        setProfile({
-          id: userId,
-          nickname: parsed.nickname,
-          role: parsed.role,
-          email: parsed.email
-        });
-      }
-      return;
-    }
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (!error && data) setProfile(data);
@@ -118,34 +101,26 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isConfigured) {
-      const demoUser = localStorage.getItem('demo_user');
-      if (demoUser) {
-        const parsed = JSON.parse(demoUser);
-        setUser({ id: 'demo-admin-id', email: parsed.email });
-        setProfile({ id: 'demo-admin-id', nickname: parsed.nickname, role: parsed.role, email: parsed.email });
+    if (!isConfigured) return;
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+      } else {
+        setProfile(null);
       }
-      return;
-    }
+    });
 
-    try {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) fetchProfile(session.user.id);
-      }).catch(err => {
-        console.warn("Supabase session fetch failed.", err);
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) fetchProfile(session.user.id);
-        else setProfile(null);
-      });
-
-      return () => subscription.unsubscribe();
-    } catch (err) {
-      console.error("Supabase initialization error", err);
-    }
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -173,6 +148,20 @@ const App: React.FC = () => {
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </main>
+          
+          {!isConfigured && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-lg">
+              <div className="bg-red-500/10 backdrop-blur-xl border border-red-500/20 p-6 rounded-3xl shadow-2xl flex items-center gap-6 animate-bounce">
+                <div className="size-12 rounded-2xl bg-red-500 flex items-center justify-center text-2xl shrink-0">⚠️</div>
+                <div className="flex-1">
+                  <h4 className="text-white font-black text-xs uppercase tracking-widest mb-1">Configuration Required</h4>
+                  <p className="text-gray-400 text-[10px] leading-relaxed break-keep">
+                    수퍼베이스 환경 변수가 설정되지 않았습니다. Cloudflare 설정에서 URL과 KEY를 입력해주세요.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </HashRouter>
     </UserContext.Provider>

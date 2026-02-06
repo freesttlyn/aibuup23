@@ -3,46 +3,8 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { BOARD_CATEGORIES, VIP_CATEGORIES } from '../constants';
 import { CommunityPost } from '../types';
-import { supabase, isDemoMode } from '../lib/supabase';
+import { supabase, isConfigured } from '../lib/supabase';
 import { UserContext } from '../App';
-
-const MOCK_POSTS: CommunityPost[] = [
-  { 
-    id: 'demo-1', 
-    title: '유튜브 쇼츠 AI 자동화 3개월 차 수익 인증 (월 180만원)', 
-    author: 'AI마스터', 
-    category: '수익인증', 
-    created_at: new Date().toISOString(), 
-    result: '월 180만원 달성', 
-    // Fix: Changed dailyTime to daily_time to match CommunityPost interface
-    daily_time: '1.5시간', 
-    tool: 'Midjourney + ElevenLabs',
-    content: '### 📊 실전 수익 리포트\n\n지난 3개월간 AI 툴들을 조합하여 쇼츠 채널 3개를 운영한 결과입니다. \n\n**1. 사용된 워크플로우:**\n- 주제 선정: ChatGPT-4o 브레인스토밍\n- 이미지: Midjourney v6.1 (특정 스타일 프롬프트 유지)\n- 음성: ElevenLabs (자연스러운 한국어 남성 목소리)\n- 편집: CapCut 자동 자막 및 화면 전환\n\n**2. 수익 결과:**\n- 애드센스: 120만원\n- 제휴 마케팅: 60만원\n\n단순히 영상을 뽑는 게 아니라 시청 지속 시간을 늘리는 AI 편집 노하우가 핵심입니다.' 
-  },
-  { 
-    id: 'demo-2', 
-    title: '강남역 OOO AI 부업 강의 330만원 사기 피해 고발', 
-    author: '정의의사도', 
-    category: '강팔이피해사례', 
-    created_at: new Date(Date.now() - 86400000).toISOString(), 
-    result: '전형적인 강팔이', 
-    // Fix: Changed dailyTime to daily_time to match CommunityPost interface
-    daily_time: '0분 (수익없음)', 
-    cost: '330만원',
-    content: '### ⚠️ 피해 주의보\n\n수익 100% 보장이라는 말에 속아 330만원 고액 강의를 결제했습니다. \n\n**피해 사실 요약:**\n1. 유튜브에 무료로 풀린 챗GPT 기본 프롬프트만 재구성해서 알려줌.\n2. 수익이 안 난다고 하자 본인의 노력이 부족하다며 가스라이팅 시전.\n3. 핵심이라던 전용 프로그램은 사실상 작동하지 않는 조잡한 수준.\n\n고액 결제를 유도하는 강의는 반드시 의심하세요. 제가 잃은 돈이 다른 분들의 방패가 되길 바랍니다.' 
-  },
-  { 
-    id: 'demo-3', 
-    title: '[고수] 미드저니 6.1 실전 인테리어 사진 판매 노하우', 
-    author: '고수X', 
-    category: '검증된부업분석-투자시간/비용체계적정리', 
-    created_at: new Date(Date.now() - 172800000).toISOString(), 
-    result: '스톡 사이트 통과', 
-    // Fix: Changed dailyTime to daily_time to match CommunityPost interface
-    daily_time: '상시', 
-    content: '### 🔒 VIP Intelligence Report\n\n미드저니 6.1에서 생성한 이미지를 상업적으로 활용하기 위해 반드시 거쳐야 하는 스톡 사이트(Adobe Stock, Shutterstock) 승인 가이드입니다. \n\n**핵심 전략:**\n- 업스케일링: Topaz Photo AI를 활용한 디테일 보정\n- 메타데이터: AI가 생성한 이미지임을 표기하면서도 노출 빈도를 높이는 태깅 전략\n- 저작권: 미드저니 유료 플랜을 통한 저작권 확보 증빙 방식' 
-  }
-];
 
 const Community: React.FC = () => {
   const { profile, user } = useContext(UserContext);
@@ -64,17 +26,11 @@ const Community: React.FC = () => {
   }, []);
 
   const fetchPosts = async () => {
-    setLoading(true);
-    const localPosts = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-
-    if (isDemoMode) {
-      setTimeout(() => {
-        setPosts([...localPosts, ...MOCK_POSTS]);
-        setLoading(false);
-      }, 500);
+    if (!isConfigured) {
+      setLoading(false);
       return;
     }
-
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('posts')
@@ -82,9 +38,9 @@ const Community: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts([...localPosts, ...(data || [])]);
+      setPosts(data || []);
     } catch (error) {
-      setPosts([...localPosts, ...MOCK_POSTS]);
+      console.error('Post fetch failed:', error);
     } finally {
       setLoading(false);
     }
@@ -132,7 +88,7 @@ const Community: React.FC = () => {
   };
 
   const handleDirectWriteClick = () => {
-    if (!user && !isDemoMode) {
+    if (!user) {
       alert('로그인이 필요합니다.');
       navigate('/login');
       return;
@@ -175,9 +131,7 @@ const Community: React.FC = () => {
           </div>
         </div>
 
-        {/* 글쓰기 통합 섹션 */}
         <div className="max-w-5xl mx-auto mb-20 space-y-6">
-          {/* AI 글쓰기 배너 */}
           <div className="relative group overflow-hidden rounded-[2.5rem] bg-neutral-900 border border-emerald-500/20 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 transition-all hover:border-emerald-500/50">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10 text-center md:text-left">
@@ -194,7 +148,6 @@ const Community: React.FC = () => {
             </button>
           </div>
 
-          {/* 직접 글쓰기 버튼 (왼쪽 배치) */}
           <div className="flex justify-start px-2">
             <button 
               onClick={handleDirectWriteClick}
@@ -207,7 +160,6 @@ const Community: React.FC = () => {
           </div>
         </div>
 
-        {/* 일반 게시판 섹션 */}
         <div className="max-w-5xl mx-auto mb-16 text-center">
           <h2 className="text-emerald-500/40 font-black text-[10px] uppercase tracking-[0.6em] mb-8">모험가 게시판</h2>
           <div className="flex flex-wrap justify-center gap-2 md:gap-3">

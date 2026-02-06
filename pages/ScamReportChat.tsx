@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase, isDemoMode } from '../lib/supabase';
+// Fix: Use isConfigured instead of non-existent isDemoMode
+import { supabase, isConfigured } from '../lib/supabase';
 import { UserContext } from '../App';
 import { GoogleGenAI } from "@google/genai";
 
@@ -18,7 +19,7 @@ const QUESTIONS = [
   "강의에서 무엇을 배웠나요? 생각나시는대로 서술해 주세요.",
   "강팔이가 제시한 장밋빛 미래를 문장으로 표현하면?",
   "모험가님이 실행한 결과는 어떠했나요?",
-  "강팔이에게 속았다고 생각하시나요?",
+  "강팔이가 속았다고 생각하시나요?",
   "왜 그렇게 생각하시나요? 길게 써도 됩니다.",
   "이런 강팔이를 만났을 때, 주의할 사항을 한 수 가르쳐 주세요.",
   "자유롭게 하시고 싶은 말씀 부탁드려요."
@@ -104,7 +105,7 @@ const ScamReportChat: React.FC = () => {
     }]);
 
     try {
-      // Correcting GoogleGenAI initialization as per the world-class guidelines to use process.env.API_KEY directly.
+      // Use process.env.API_KEY directly as required for GoogleGenAI initialization.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const qaPairs = QUESTIONS.map((q, i) => `질문: ${q}\n답변: ${finalAnswers[i]}`).join('\n\n');
       
@@ -128,7 +129,7 @@ const ScamReportChat: React.FC = () => {
         contents: prompt,
       });
 
-      // Directly accessing .text property of GenerateContentResponse.
+      // Fix: Access .text property instead of method.
       const aiText = response.text || "";
       const titleMatch = aiText.match(/TITLE:\s*(.*)/i);
       const generatedTitle = titleMatch ? titleMatch[1].trim() : `[피해사례] ${finalAnswers[0]} 관련 제보`;
@@ -146,7 +147,8 @@ const ScamReportChat: React.FC = () => {
         likes: 0
       };
 
-      if (!isDemoMode && user) {
+      // Fix: Use isConfigured to check if Supabase is available.
+      if (isConfigured && user) {
         const { error } = await supabase.from('posts').insert([newPost]);
         if (error) throw error;
         refreshProfile();
@@ -188,7 +190,8 @@ const ScamReportChat: React.FC = () => {
         created_at: new Date().toISOString()
       };
 
-      if (!isDemoMode && user) {
+      // Fix: Use isConfigured to check if Supabase is available in fallback.
+      if (isConfigured && user) {
         await supabase.from('posts').insert([fallbackPost]);
       } else {
         const demoFallback = { ...fallbackPost, id: `post-${Date.now()}` };

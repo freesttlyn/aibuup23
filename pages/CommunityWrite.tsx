@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { VIP_CATEGORIES, BOARD_CATEGORIES } from '../constants';
-import { supabase, isDemoMode } from '../lib/supabase';
+import { supabase, isConfigured } from '../lib/supabase';
 import { UserContext } from '../App';
 import { GoogleGenAI, Chat } from "@google/genai";
 
@@ -32,7 +32,7 @@ const CommunityWrite: React.FC = () => {
   const isGold = profile?.role === 'GOLD' || profile?.role === 'ADMIN';
 
   useEffect(() => {
-    if (!user && !isDemoMode) {
+    if (!user) {
       navigate('/login');
     }
   }, [user, navigate]);
@@ -147,14 +147,10 @@ const CommunityWrite: React.FC = () => {
         likes: 0
       };
 
-      if (!isDemoMode && user) {
+      if (isConfigured && user) {
         const { error } = await supabase.from('posts').insert([newPost]);
         if (error) throw error;
         refreshProfile();
-      } else {
-        const demoPost = { ...newPost, id: `post-${Date.now()}` };
-        const existing = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-        localStorage.setItem('demo_posts', JSON.stringify([demoPost, ...existing]));
       }
 
       setStep('DONE');

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase, isConfigured, isDemoMode } from '../lib/supabase';
+import { supabase, isConfigured } from '../lib/supabase';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +15,10 @@ const Register: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isConfigured) {
+      setError('수퍼베이스 설정이 완료되지 않았습니다.');
+      return;
+    }
     
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
@@ -29,23 +33,6 @@ const Register: React.FC = () => {
     setError(null);
     setMessage(null);
 
-    // 데모 모드일 경우 (환경 변수 미설정 시)
-    if (isDemoMode) {
-      setTimeout(() => {
-        const demoUser = {
-          id: 'demo-user-id-' + Date.now(),
-          email,
-          nickname,
-          role: email === 'exp.gwonyoung.woo@gmail.com' ? 'ADMIN' : 'SILVER'
-        };
-        localStorage.setItem('demo_user', JSON.stringify(demoUser));
-        setIsLoading(false);
-        navigate('/community');
-      }, 1000);
-      return;
-    }
-
-    // 실제 수퍼베이스 연동 모드
     try {
       const { data, error: authError } = await supabase.auth.signUp({
         email,

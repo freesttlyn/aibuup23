@@ -5,18 +5,6 @@ import { supabase, isConfigured } from '../lib/supabase';
 import { CommunityPost, NewsItem } from '../types';
 import { UserContext } from '../App';
 
-const MOCK_POSTS: any[] = [
-  { id: 'demo-1', title: '유튜브 쇼츠 AI 자동화 3개월 차 수익 인증 (월 180만원)', author: 'AI마스터', category: '수익인증', created_at: new Date().toISOString() },
-  { id: 'demo-2', title: '강남역 OOO AI 부업 강의 330만원 사기 피해 고발', author: '정의의사도', category: '강팔이피해사례', created_at: new Date().toISOString() },
-  { id: 'demo-3', title: '[고수] 미드저니 6.1 실전 인테리어 사진 판매 노하우', author: '고수X', category: '검증된부업분석-투자시간/비용체계적정리', created_at: new Date().toISOString() }
-];
-
-const MOCK_PROFILES: any[] = [
-  { id: 'u-1', email: 'ai_master@example.com', nickname: 'AI마스터', role: 'GOLD', created_at: new Date(Date.now() - 86400000 * 10).toISOString() },
-  { id: 'u-2', email: 'justice@example.com', nickname: '정의의사도', role: 'SILVER', created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: 'u-3', email: 'admin@aibuup.com', nickname: '최고관리자', role: 'ADMIN', created_at: new Date(Date.now() - 86400000 * 30).toISOString() }
-];
-
 interface Profile {
   id: string;
   email: string;
@@ -33,7 +21,6 @@ const Admin: React.FC = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'users' | 'news'>('posts');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,65 +51,21 @@ const Admin: React.FC = () => {
   }, []);
 
   const fetchAdminData = async () => {
+    if (!isConfigured) return;
     setLoading(true);
-    const localPosts = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-
-    if (!isConfigured) {
-      setPosts([...localPosts, ...MOCK_POSTS]);
-      setProfiles(MOCK_PROFILES);
-      setLoading(false);
-      return;
-    }
-
     try {
       const { data: postsData } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
       const { data: profilesData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       const { data: newsData } = await supabase.from('news').select('*').order('created_at', { ascending: false });
 
-      setPosts([...localPosts, ...(postsData || [])]);
+      setPosts(postsData || []);
       setProfiles(profilesData || []);
       setNews(newsData || []);
     } catch (error) {
       console.error('관리자 데이터 로드 오류:', error);
-      setPosts([...localPosts, ...MOCK_POSTS]);
-      setProfiles(MOCK_PROFILES);
     } finally {
       setLoading(false);
     }
-  };
-
-  const seedData = async () => {
-    if (!window.confirm('샘플 데이터를 시스템에 추가하시겠습니까?')) return;
-    setIsSeeding(true);
-
-    const newSeeds = [
-      {
-        id: `seed-${Date.now()}`,
-        title: "AI로 그린 그림, 스톡 이미지 사이트에서 첫 판매 성공 리포트",
-        author: "아트봇",
-        category: "수익인증",
-        content: "드디어 첫 달러 수익이 발생했습니다! 미드저니를 활용한 가이드입니다.",
-        created_at: new Date().toISOString(),
-        likes: 12,
-        result: "$1.2 수익 발생"
-      }
-    ];
-
-    if (!isConfigured) {
-      const existing = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-      localStorage.setItem('demo_posts', JSON.stringify([...newSeeds, ...existing]));
-    } else {
-      try {
-        const seedsWithUser = newSeeds.map(s => ({ ...s, user_id: user?.id, id: undefined }));
-        await supabase.from('posts').insert(seedsWithUser);
-      } catch (e) {
-        console.error("Seed error", e);
-      }
-    }
-
-    alert('데이터가 추가되었습니다.');
-    setIsSeeding(false);
-    fetchAdminData();
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,23 +88,26 @@ const Admin: React.FC = () => {
     }
   };
 
-  const deletePost = async (id: string | number) => {
+  const deletePost = async (id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
-    const localPosts = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-    const filteredLocal = localPosts.filter((p: any) => p.id !== id);
-    localStorage.setItem('demo_posts', JSON.stringify(filteredLocal));
-
-    if (isConfigured && typeof id === 'string' && !id.startsWith('post-') && !id.startsWith('demo-')) {
-       await supabase.from('posts').delete().eq('id', id);
+    try {
+      const { error } = await supabase.from('posts').delete().eq('id', id);
+      if (error) throw error;
+      setPosts(posts.filter(p => p.id !== id));
+    } catch (e) {
+      alert('삭제 실패');
     }
-    setPosts(posts.filter(p => p.id !== id));
   };
 
   const deleteNews = async (id: string) => {
-    if (!isConfigured) return;
     if (!window.confirm('뉴스를 삭제하시겠습니까?')) return;
-    const { error } = await supabase.from('news').delete().eq('id', id);
-    if (!error) setNews(news.filter(n => n.id !== id));
+    try {
+      const { error } = await supabase.from('news').delete().eq('id', id);
+      if (error) throw error;
+      setNews(news.filter(n => n.id !== id));
+    } catch (e) {
+      alert('삭제 실패');
+    }
   };
 
   const handleCreateNews = async (e: React.FormEvent) => {
@@ -186,15 +132,14 @@ const Admin: React.FC = () => {
   };
 
   const updateUserRole = async (userId: string, newRole: string) => {
-    if (isConfigured) {
+    try {
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-      if (error) {
-        alert('실패: ' + error.message);
-        return;
-      }
+      if (error) throw error;
+      setProfiles(profiles.map(p => p.id === userId ? { ...p, role: newRole as any } : p));
+      alert('회원 등급이 변경되었습니다.');
+    } catch (err: any) {
+      alert('등급 변경 실패: ' + err.message);
     }
-    setProfiles(profiles.map(p => p.id === userId ? { ...p, role: newRole as any } : p));
-    alert('회원 등급이 변경되었습니다.');
   };
 
   const forceWithdrawal = async (userId: string) => {
@@ -204,16 +149,18 @@ const Admin: React.FC = () => {
     }
     if (!window.confirm('정말로 이 회원을 강제 탈퇴시키겠습니까?\n작성한 모든 데이터에 접근이 제한될 수 있습니다.')) return;
 
-    if (isConfigured) {
+    try {
+      // Supabase handles cascade deletes if configured correctly
       const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) {
-        alert('탈퇴 처리 실패: ' + error.message);
-        return;
-      }
+      if (error) throw error;
+      setProfiles(profiles.filter(p => p.id !== userId));
+      alert('탈퇴 처리가 완료되었습니다.');
+    } catch (err: any) {
+      alert('탈퇴 처리 실패: ' + err.message);
     }
-    setProfiles(profiles.filter(p => p.id !== userId));
-    alert('탈퇴 처리가 완료되었습니다.');
   };
+
+  if (loading) return <div className="text-center pt-48">Loading admin data...</div>;
 
   return (
     <div className="min-h-screen bg-black pt-12 pb-32 px-6">
@@ -237,12 +184,7 @@ const Admin: React.FC = () => {
 
         {activeTab === 'posts' && (
           <div className="animate-fadeIn">
-            <div className="flex justify-between items-center mb-6 px-4">
-              <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest italic">Intelligence Archive ({posts.length})</h2>
-              <button onClick={seedData} disabled={isSeeding} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-black transition-all">
-                {isSeeding ? 'SEEDING...' : 'SEED SAMPLE DATA'}
-              </button>
-            </div>
+            <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest italic mb-6 px-4">Intelligence Archive ({posts.length})</h2>
             <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
               <table className="w-full text-left">
                 <thead>
@@ -268,6 +210,11 @@ const Admin: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                  {posts.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-20 text-center text-gray-600 text-xs font-black uppercase tracking-[0.4em]">No posts available in database</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

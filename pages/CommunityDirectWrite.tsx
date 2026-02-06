@@ -2,7 +2,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { BOARD_CATEGORIES, VIP_CATEGORIES } from '../constants';
-import { supabase, isDemoMode, isConfigured } from '../lib/supabase';
+import { supabase, isConfigured } from '../lib/supabase';
 import { UserContext } from '../App';
 import { BoardCategoryType } from '../types';
 
@@ -24,7 +24,7 @@ const CommunityDirectWrite: React.FC = () => {
   const isGold = profile?.role === 'GOLD' || profile?.role === 'ADMIN';
 
   useEffect(() => {
-    if (!user && !isDemoMode) {
+    if (!user) {
       navigate('/login');
     }
   }, [user, navigate]);
@@ -54,31 +54,16 @@ const CommunityDirectWrite: React.FC = () => {
         content: formData.content,
         tool: formData.tool,
         cost: formData.cost,
-        daily_time: formData.dailyTime, // snake_case 컬럼명 사용
+        daily_time: formData.dailyTime,
         result: formData.result,
         user_id: user?.id,
         created_at: new Date().toISOString(),
         likes: 0
       };
 
-      if (!isDemoMode && isConfigured && user) {
+      if (isConfigured && user) {
         const { error } = await supabase.from('posts').insert([postData]);
-        
-        if (error) {
-          // 스키마 캐시 오류 발생 시 사용자에게 SQL 실행 안내
-          if (error.message.includes('column') || error.message.includes('schema cache')) {
-            throw new Error(
-              "데이터베이스 구조가 업데이트되지 않았습니다.\n\n" +
-              "수퍼베이스 SQL Editor에서 다음 명령을 실행해주세요:\n" +
-              "ALTER TABLE posts ADD COLUMN IF NOT EXISTS daily_time text;"
-            );
-          }
-          throw error;
-        }
-      } else {
-        const demoPost = { ...postData, id: `post-${Date.now()}` };
-        const existing = JSON.parse(localStorage.getItem('demo_posts') || '[]');
-        localStorage.setItem('demo_posts', JSON.stringify([demoPost, ...existing]));
+        if (error) throw error;
       }
 
       alert('리포트가 성공적으로 등록되었습니다.');
@@ -183,10 +168,6 @@ const CommunityDirectWrite: React.FC = () => {
           </div>
         </form>
       </div>
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
-      `}</style>
     </div>
   );
 };

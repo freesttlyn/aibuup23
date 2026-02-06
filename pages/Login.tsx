@@ -12,6 +12,11 @@ const Login: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isConfigured) {
+      setError('수퍼베이스 설정이 완료되지 않았습니다.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -21,24 +26,20 @@ const Login: React.FC = () => {
         password,
       });
 
-      if (authError) {
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (data.user) {
         navigate('/community');
       }
     } catch (err: any) {
-      // 에러 메시지 한글화 처리
       let errMsg = err.message;
-      if (errMsg.includes('Email not confirmed')) {
-        errMsg = '이메일 인증이 완료되지 않았습니다. 이메일함을 확인하시거나, 수퍼베이스 설정에서 이메일 인증(Confirm email)을 꺼주세요.';
+      if (errMsg === 'Failed to fetch') {
+        errMsg = '수퍼베이스 연결 실패. Cloudflare Pages 설정에서 VITE_SUPABASE_URL과 KEY가 정확히 입력되었는지 확인하고 다시 배포해주세요.';
+      } else if (errMsg.includes('Email not confirmed')) {
+        errMsg = '이메일 인증이 완료되지 않았습니다. 수퍼베이스 설정에서 Confirm email을 꺼주세요.';
       } else if (errMsg.includes('Invalid login credentials')) {
         errMsg = '이메일 또는 비밀번호가 잘못되었습니다.';
-      } else if (errMsg.includes('Email not found')) {
-        errMsg = '등록되지 않은 이메일입니다.';
       }
-      
       setError(errMsg);
     } finally {
       setIsLoading(false);
@@ -47,7 +48,6 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6 relative overflow-hidden">
-      {/* Background Decorative Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[600px] bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
       
       <div className="w-full max-w-md relative z-10">
@@ -56,7 +56,6 @@ const Login: React.FC = () => {
             Ai BuUp
           </Link>
           <h1 className="text-2xl font-bold text-gray-200">데이터로 증명하는 부업의 진실</h1>
-          <p className="text-gray-500 mt-2">로그인하여 검증된 커뮤니티에 참여하세요.</p>
         </div>
 
         <div className="bg-neutral-900/50 backdrop-blur-3xl border border-white/5 p-8 md:p-10 rounded-[2.5rem] shadow-2xl shadow-emerald-500/5">
