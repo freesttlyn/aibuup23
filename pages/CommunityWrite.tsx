@@ -48,13 +48,11 @@ const CommunityWrite: React.FC = () => {
       return;
     }
 
-    // 가이드라인에 따라 키 체크 로직을 제거하고 즉시 진행합니다.
     setSelectedCat(name);
     setStep('CHATTING');
     setIsBotTyping(true);
 
     try {
-      // process.env.API_KEY를 직접 사용하여 AI 연결
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({
         model: 'gemini-3-flash-preview',
@@ -62,13 +60,11 @@ const CommunityWrite: React.FC = () => {
           systemInstruction: `
             당신은 AI 부업 검증 플랫폼 'Ai BuUp'의 수석 분석 에이전트입니다.
             현재 사용자는 '${name}' 카테고리에 대한 정보를 공유하려고 합니다.
-            
-            당신의 목표:
-            1. 사용자의 부업 경험담에서 '진짜 데이터'를 추출하기 위해 날카로운 질문을 던지세요.
-            2. 한 번에 '하나의 질문'만 하세요. 질문은 매우 구체적이어야 합니다.
-            3. 수익성, 투입 시간, 리스크 등을 파고드세요.
-            4. 충분한 정보가 모였다면 메시지 끝에 반드시 "[REPORT_READY]" 태그를 붙이세요.
-            5. 말투는 냉철하고 지적인 AI 감사관 톤(한국어)을 유지하세요.
+            목표: 사용자의 부업 경험에서 '진짜 데이터'를 추출하기 위해 날카로운 질문을 던지세요.
+            한 번에 하나의 질문만 하세요. 질문은 구체적이어야 합니다.
+            수익성, 투입 시간, 리스크 등을 파고드세요.
+            충분한 정보가 모였다면 메시지 끝에 반드시 "[REPORT_READY]" 태그를 붙이세요.
+            말투는 냉철하고 지적인 AI 감사관 톤을 유지하세요.
           `,
         },
       });
@@ -85,7 +81,7 @@ const CommunityWrite: React.FC = () => {
       ]);
     } catch (err) {
       console.error("AI Init Error:", err);
-      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 모듈 초기화 실패. 브라우저 설정 혹은 배포 환경 변수를 확인해 주세요." }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "❌ AI 모듈을 초기화할 수 없습니다. 배포 환경 설정을 확인하거나 잠시 후 다시 시도해 주세요." }]);
       setStep('SELECT');
     } finally {
       setIsBotTyping(false);
@@ -127,10 +123,6 @@ const CommunityWrite: React.FC = () => {
       
       const prompt = `
         다음 대화 데이터를 바탕으로 '${selectedCat}' 카테고리에 등록될 최종 '인텔리전스 리포트'를 마크다운으로 작성하세요.
-        
-        대화 데이터:
-        ${history}
-        
         최상단에 "TITLE: [제목]" 형식으로 제목을 포함할 것.
       `;
 

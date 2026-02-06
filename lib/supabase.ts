@@ -1,13 +1,9 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@^2.45.0';
 
-// 우선순위: localStorage > process.env (Cloudflare Pages)
-const getEnv = (key: string) => {
-  return localStorage.getItem(key) || (typeof process !== 'undefined' ? process.env[key] : '') || '';
-};
-
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+// Cloudflare Pages에서 주입하는 환경 변수 직접 참조
+const supabaseUrl = typeof process !== 'undefined' ? (process.env.VITE_SUPABASE_URL || localStorage.getItem('VITE_SUPABASE_URL')) : '';
+const supabaseAnonKey = typeof process !== 'undefined' ? (process.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('VITE_SUPABASE_ANON_KEY')) : '';
 
 export const isConfigured = 
   supabaseUrl && 
@@ -15,13 +11,10 @@ export const isConfigured =
   supabaseAnonKey && 
   supabaseAnonKey.length > 20;
 
-export const isDemoMode = !isConfigured;
-
-// 실제 연동 여부에 따라 클라이언트 생성
+// 설정되지 않았을 경우 앱이 죽지 않도록 기본값 유지하되 기능은 데모로 작동
 export const supabase = createClient(
-  isConfigured ? supabaseUrl : 'https://placeholder-project.supabase.co',
-  isConfigured ? supabaseAnonKey : 'placeholder-key'
+  isConfigured ? supabaseUrl! : 'https://placeholder.supabase.co',
+  isConfigured ? supabaseAnonKey! : 'placeholder-key'
 );
 
-// 실시간으로 API_KEY를 가져오는 헬퍼 (Gemini용)
-export const getAiKey = () => getEnv('API_KEY');
+export const isDemoMode = !isConfigured;
