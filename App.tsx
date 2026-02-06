@@ -31,12 +31,10 @@ const ScrollToTop = () => {
 const ConfigModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const [url, setUrl] = useState(localStorage.getItem('VITE_SUPABASE_URL') || '');
   const [key, setKey] = useState(localStorage.getItem('VITE_SUPABASE_ANON_KEY') || '');
-  const [aiKey, setAiKey] = useState(localStorage.getItem('API_KEY') || '');
 
   const handleSave = () => {
     localStorage.setItem('VITE_SUPABASE_URL', url);
     localStorage.setItem('VITE_SUPABASE_ANON_KEY', key);
-    localStorage.setItem('API_KEY', aiKey);
     alert('설정이 저장되었습니다. 페이지를 새로고침합니다.');
     window.location.reload();
   };
@@ -46,8 +44,8 @@ const ConfigModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
       <div className="bg-[#1a1a1a] border border-white/10 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-slideUp">
-        <h2 className="text-2xl font-black mb-2 text-white italic">SYSTEM SETUP</h2>
-        <p className="text-gray-500 text-sm mb-8">환경 변수 연동이 실패한 경우, 아래에 직접 정보를 입력하세요.</p>
+        <h2 className="text-2xl font-black mb-2 text-white italic">DATABASE SETUP</h2>
+        <p className="text-gray-500 text-sm mb-8">데이터베이스 환경 변수 연동이 필요한 경우 정보를 입력하세요.</p>
         
         <div className="space-y-6">
           <div className="space-y-2">
@@ -57,10 +55,6 @@ const ConfigModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void
           <div className="space-y-2">
             <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Supabase Anon Key</label>
             <input type="text" value={key} onChange={e => setKey(e.target.value)} placeholder="eyJhbGci..." className="w-full bg-black border border-white/10 rounded-xl px-5 py-3 text-sm text-white outline-none focus:border-emerald-500/50" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Google Gemini API Key</label>
-            <input type="text" value={aiKey} onChange={e => setAiKey(e.target.value)} placeholder="AIzaSy..." className="w-full bg-black border border-white/10 rounded-xl px-5 py-3 text-sm text-white outline-none focus:border-emerald-500/50" />
           </div>
         </div>
 
