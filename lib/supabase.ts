@@ -1,7 +1,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@^2.45.0';
 
-// 우선순위: localStorage > process.env (Netlify)
+// 우선순위: localStorage > process.env (Cloudflare Pages)
 const getEnv = (key: string) => {
   return localStorage.getItem(key) || (typeof process !== 'undefined' ? process.env[key] : '') || '';
 };

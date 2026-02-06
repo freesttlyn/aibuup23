@@ -13,8 +13,8 @@
 - **Admin 2**: `exp.gwonyoung.woo@gmail.com` (PW: 88_8tHh6)
 - *주의: 위 계정으로 실제 서비스에서 '회원가입(Register)'을 진행해야 권한이 활성화됩니다.*
 
-## 3. Netlify 배포 환경 변수
-Netlify **Site configuration > Environment variables**에 다음 3개를 반드시 등록하세요:
+## 3. Cloudflare Pages 배포 환경 변수
+Cloudflare Pages **Settings > Environment variables**에 다음 3개를 반드시 등록하세요:
 - `VITE_SUPABASE_URL`: (Supabase 프로젝트 URL)
 - `VITE_SUPABASE_ANON_KEY`: (Supabase Anon Key)
 - `API_KEY`: (Google Gemini API Key) - *AI 리포트 생성을 위해 필수*
